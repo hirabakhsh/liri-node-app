@@ -1,0 +1,22 @@
+{
+  "name": "liri-node-app",
+  "version": "1.0.0",
+  "description": "LIRI in process",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hirabakhsh/liri-node-app.git"
+  },
+  "keywords": [
+    "LIRI"
+  ],
+  "author": "Hira",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hirabakhsh/liri-node-app/issues"
+  },
+  "homepage": "https://github.com/hirabakhsh/liri-node-app#readme"
+}
