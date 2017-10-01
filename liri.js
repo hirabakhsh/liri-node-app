@@ -1,55 +1,174 @@
-// Make a JavaScript file named liri.js.
-// At the top of the liri.js file, write the code you need to grab the data from keys.js. Then store the keys in a variable.
-// Make it so liri.js can take in one of the following commands:
-// my-tweets
-// spotify-this-song
-// movie-this
-// do-what-it-says
+
+// Require all npm packages:
+
+var Twitter = require('twitter');
+var spotify = require('node-spotify-api');
+var request = require('request');
+var fs = require('fs');
 
 
-var keysObject = require('./keys.js');
-console.log(typeof(keysObject));
+// getting keys from keys.js
 
-//Callback functions
-var error = function (err, response, body) {
-	console.log('ERROR [%s]', err);
-};
-var success = function (data) {
-    console.log('Data [%s]', data);
-};
+var keys = require('./keys.js');
+var tweets = keys.twitterKeys;
 
-var Twitter = require('twitter-node-client').Twitter;
 
-//Get this data from your twitter apps dashboard
-var config = {
-    "consumerKey": keysObject.consumerKey,
-    "consumerSecret": keysObject.consumerSecret,
-    "accessToken": keysObject.accessToken,
-    "accessTokenSecret": keysObject.accessTokenSecret,
+var spotify = new spotify ({
+    id: 'f5519412b3554478b3e886d7ac720a15', 
+    secret: '281643a2976848f39a56a4d34968f0e8'
+});
+
+var inputArguments = process.argv;
+
+// Grab second command
+var command = inputArguments[2];
+
+// Executing Liri command by request
+
+if (command == 'my-tweets') {
+    myTweets();
+} else if (command == `spotify-this-song`) {
+    spotifyThisSong(command);
+} else if (command == `movie-this`) {
+    movieThis(command);
+} else if (command ==  `do-what-it-says`) {
+    doWhatItSays();
+} else {
+    console.log('Please enter a valid command from following options: 1. my-tweets, 2. spotify-this-song, 3. movie-this, 4. do-what-it-says')
 }
 
-var twitter = new Twitter(config);
 
-//Example calls
+// Supporting Functions 
 
-twitter.getUserTimeline({ screen_name: 'BoyCook', count: '10'}, error, success);
+function myTweets() {
+    var client = new Twitter(tweets);
 
-twitter.getMentionsTimeline({ count: '10'}, error, success);
+    var parameters = {screen_name: 'HiraBakhsh', count: 20};
 
-twitter.getHomeTimeline({ count: '10'}, error, success);
+    client.get('statuses/user_timeline', parameters, function(error, mytweets, response) {
+        if (error) {
+            var errorMessage = 'ERROR: Retrieving user tweets... ' + JSON.stringify(error);
+            console.log(errorMessage);
 
-twitter.getReTweetsOfMe({ count: '10'}, error, success);
+        } else {
+            var outputMessage = '------------------------\n' +
+                            'User Tweets:\n' +
+                            '------------------------\n\n';
 
-twitter.getTweet({ id: '1111111111'}, error, success);
+            for (var i = 0; i < mytweets.length; i++) {
+                outputMessage += 'Created on: ' + mytweets[i].created_at + '\n' +
+                             'Tweet content: ' + mytweets[i].text + '\n' +
+                             '------------------------\n';
+            }
+        console.log(outputMessage);
+        }
 
-//
-  // Get 10 tweets containing the hashtag haiku
-  //
+    });
+}
 
-// twitter.getSearch({'q':'#haiku','count': 10}, error, success);
+function spotifyThisSong(song) {
 
-//
-  // Get 10 popular tweets with a positive attitude about a movie that is not scary 
-  //
+    // If no song, LIRI defaults to 'The Sign' by Ace Of Base
+    var search;
+    if (song === '') {
+        search = 'The Sign Ace Of Base';
+    } else {
+        search = song;
+    }
 
-// twitter.getSearch({'q':' movie -scary :) since:2013-12-27', 'count': 10, 'result\_type':'popular'}, error, success);
+    spotify.search({ type: 'track', query: search}, function(error, data) {
+        if (error) {
+            var errorStr1 = 'ERROR: Retrieving Spotify song... ' + error;
+
+        } else {
+            var songInfo = data.tracks.items[0];
+            if (!songInfo) {
+
+                var errorStr2 = 'ERROR: Song cannot be found, please try again';
+                return;
+            } else {
+                var outputStr = '------------------------\n' +
+                                'Song Information:\n' +
+                                '------------------------\n\n' +
+                                'Song Name: ' + songInfo.name + '\n'+
+                                'Artist: ' + songInfo.artists[0].name + '\n' +
+                                'Album: ' + songInfo.album.name + '\n' +
+                                'Preview Here: ' + songInfo.preview_url + '\n';
+                console.log(outputStr);
+            }
+        }
+    });
+}
+
+function movieThis(movie) {
+    // If no movie, LIRI defaults to 'Mr. Nobody'
+    var search;
+    if (movie === '') {
+        search = 'Mr. Nobody';
+    } else {
+        search = movie;
+    }
+
+    search = inputArguments.slice(3).join(' ');
+    var queryStr = 'http://www.omdbapi.com/?t=' + search + '&plot=full&apikey=40e9cece';
+
+
+    request(queryStr, function (error, response, body) {
+        if ( error || (response.statusCode !== 200) ) {
+            var errorStr1 = 'ERROR: No OMDB entry... ' + error;
+
+
+        } else {
+            var data = JSON.parse(body);
+            if (!data.Title && !data.Released && !data.imdbRating) {
+                var errorStr2 = 'ERROR: Movie not found. Please try again';
+                console.log(errorStr2);
+
+            } else {
+                var outputStr = '------------------------\n' +
+                                'Movie Information:\n' +
+                                '------------------------\n\n' +
+                                'Movie Title: ' + data.Title + '\n' +
+                                'Year Released: ' + data.Released + '\n' +
+                                'IMBD Rating: ' + data.imdbRating + '\n' +
+                                'Country Produced: ' + data.Country + '\n' +
+                                'Language: ' + data.Language + '\n' +
+                                'Plot: ' + data.Plot + '\n' +
+                                'Actors: ' + data.Actors + '\n' +
+                                'Rotten Tomatoes Rating: ' + data.tomatoRating + '\n' +
+                                'Rotten Tomatoes URL: ' + data.tomatoURL + '\n';
+                console.log(outputStr);
+            }
+        }
+    });
+}
+
+
+function doWhatItSays() {
+
+    fs.readFile('./random.txt', 'utf8', function (error, data) {
+        if (error) {
+            console.log('Error reading file... ' + error);
+            return;
+        } else {
+            var cmdString = data.split(',');
+            var command = cmdString[0].trim();
+            var param = cmdString[1].trim();
+
+            switch(command) {
+                case 'my-tweets':
+                    myTweets();
+                    break;
+
+                case 'spotify-this-song':
+                    spotifyThisSong(param);
+                    break;
+
+                case 'movie-this':
+                    movieThis(param);
+                    break;
+            }
+        }
+    });
+}
+
